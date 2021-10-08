@@ -19,6 +19,7 @@
 #include <KActionCollection>
 #include <KActionMenu>
 #include <KCrash>
+#include <KHamburgerMenu>
 #include <KIconUtils>
 #include <KLocalizedString>
 #include <KShortcutsDialog>
@@ -68,6 +69,7 @@ MainWindow::MainWindow()
     , _toggleMenuBarAction(nullptr)
     , _newTabMenuAction(nullptr)
     , _pluggedController(nullptr)
+    , _hamburgerMenu(nullptr)
 {
     // Set the WA_NativeWindow attribute to force the creation of the QWindow.
     // Without this QWidget::windowHandle() returns 0.
@@ -376,6 +378,56 @@ void MainWindow::setupActions()
             viewManager()->loadLayoutFile();
         }
     });
+
+    // Hamburger menu for when the menubar is hidden
+    _hamburgerMenu = KStandardAction::hamburgerMenu(nullptr, nullptr, collection);
+    _hamburgerMenu->setShowMenuBarAction(_toggleMenuBarAction);
+    _hamburgerMenu->setMenuBar(menuBar());
+    connect(_hamburgerMenu, &KHamburgerMenu::aboutToShowMenu, [this]() {
+        updateHamburgerMenu();
+    });
+}
+
+void MainWindow::updateHamburgerMenu()
+{
+    KActionCollection *collection = actionCollection();
+
+    QMenu *menu = _hamburgerMenu->menu();
+    if (!menu) {
+        menu = new QMenu(widget());
+        _hamburgerMenu->setMenu(menu);
+    } else {
+        menu->clear();
+    }
+
+    menu->addAction(collection->action(QStringLiteral("new-window")));
+    menu->addAction(collection->action(QStringLiteral("new-tab")));
+    menu->addAction(collection->action(QStringLiteral("file_save_as")));
+    menu->addSeparator();
+    menu->addAction(collection->action(QStringLiteral("edit-copy")));
+    menu->addAction(collection->action(QStringLiteral("edit-paste")));
+    menu->addAction(collection->action(QStringLiteral("edit_find")));
+    menu->addSeparator();
+    menu->addAction(collection->action(QStringLiteral("view-full-screen")));
+    menu->addAction(collection->action(QStringLiteral("view-split")));
+    menu->addAction(collection->action(QStringLiteral("clear-history-and-reset")));
+    menu->addAction(collection->action(QStringLiteral("enlarge-font")));
+    menu->addAction(collection->action(QStringLiteral("reset-font-size")));
+    menu->addAction(collection->action(QStringLiteral("shrink-font")));
+    menu->addSeparator();
+    menu->addAction(collection->action(QStringLiteral("monitor-silence")));
+    menu->addAction(collection->action(QStringLiteral("monitor-activity")));
+    menu->addAction(collection->action(QStringLiteral("monitor-process-finish")));
+    menu->addSeparator();
+    menu->addAction(collection->action(QStringLiteral("bookmark")));
+    menu->addAction(collection->action(QStringLiteral("plugins")));
+    QMenu *configureMenu = new QMenu();
+    configureMenu->addAction(collection->action(QStringLiteral("edit-current-profile")));
+    configureMenu->addAction(collection->action(QStringLiteral("configure-settings")));
+    configureMenu->addAction(collection->action(QStringLiteral("configure-language")));
+    configureMenu->addAction(collection->action(QStringLiteral("configure-shortcuts")));
+    configureMenu->addAction(collection->action(QStringLiteral("configure-notifications")));
+    menu->addMenu(configureMenu);
 }
 
 void MainWindow::viewFullScreen(bool fullScreen)
